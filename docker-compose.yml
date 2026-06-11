@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-person_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-person_pass}
+      POSTGRES_DB: ${DB_NAME:-person_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c maintenance_work_mem=64MB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-person_user} -d ${DB_NAME:-person_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - person-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  person-service:
+    build: .
+    ports:
+      - "50051:50051"
+    command: >
+      --db_host=${DB_HOST_DOCKER}
+      --db_port=${DB_PORT}
+      --db_user=${DB_USER}
+      --db_password=${DB_PASSWORD}
+      --db_name=${DB_NAME}
+      --grpc_port=${GRPC_PORT}
+      --enrich_timeout=${ENRICH_TIMEOUT}
+    environment:
+      # Database
+      DB_USER: ${DB_USER:-person_user}
+      DB_PASSWORD: ${DB_PASSWORD:-person_pass}
+      DB_NAME: ${DB_NAME:-person_db}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    stop_grace_period: 30s # Sets timeout to 30 seconds
+    networks:
+      - person-network
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      - postgres
+    networks:
+      - person-network
+
+volumes:
+  postgres_data:
+
+networks:
+  person-network:
+    driver: bridge

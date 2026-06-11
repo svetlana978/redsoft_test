@@ -1,0 +1,12 @@
+CREATE TABLE public.people (
+    id BIGSERIAL PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    patronymic VARCHAR(100),
+    age INT NOT NULL DEFAULT 0,
+    gender VARCHAR(20) NOT NULL DEFAULT 'unknown',
+    nationality VARCHAR(20) NOT NULL DEFAULT 'unknown',
+    emails TEXT[] DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
